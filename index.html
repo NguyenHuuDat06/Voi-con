@@ -12,7 +12,6 @@ html,body{
     background: radial-gradient(circle at top,#220033,#000010,#000);
 }
 
-/* canvas */
 canvas{
     position:fixed;
     top:0;
@@ -94,40 +93,45 @@ canvas{
 <body>
 
 <canvas id="c"></canvas>
-<audio id="music" src="ThanhTan1.m4a" loop autoplay></audio>
+<audio id="music" src="ThanhTan1.m4a" loop></audio>
 
 <script>
-    document.body.addEventListener("click", ()=>{
+document.body.addEventListener("click", ()=>{
     document.getElementById("music").play();
 });
+
 let canvas=document.getElementById("c");
 let ctx=canvas.getContext("2d");
 
-function resize(){
-    canvas.width=innerWidth;
-    canvas.height=innerHeight;
+/* ===== FIX MOBILE ===== */
+function resizeCanvas(){
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+
+    canvas.style.width = window.innerWidth + "px";
+    canvas.style.height = window.innerHeight + "px";
+
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.scale(dpr,dpr);
 }
-resize();
-window.onresize=resize;
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
 
 let startTime=Date.now();
 let activated=false;
 
 /* ===== STAR ===== */
-/* ===== STAR (dày + anime hơn) ===== */
 for(let i=0;i<400;i++){
     let s=document.createElement("div");
     s.className="star";
-
     let size=Math.random()*2.2;
 
     s.style.width=size+"px";
     s.style.height=size+"px";
-
     s.style.top=Math.random()*100+"%";
     s.style.left=Math.random()*100+"%";
-
-    /* ⭐ thêm độ sáng ngẫu nhiên */
     s.style.opacity=0.3 + Math.random()*0.7;
 
     document.body.appendChild(s);
@@ -151,52 +155,62 @@ function heart(t){
     };
 }
 
-/* ===== FEWER BUT STRONGER HEART ===== */
+/* ===== PARTICLES FIX CHUẨN ===== */
 let particles=[];
-let scale=Math.min(innerWidth,innerHeight)/38;
+let scale=Math.min(window.innerWidth,window.innerHeight)/35;
 
-/* 🔥 ít nhưng đậm + rõ outline */
-for(let i=0;i<2800;i++){
+/* 🔥 FIX QUAN TRỌNG: KHÔNG TỤ DỌC + FULL TRONG */
+for(let i=0;i<3500;i++){
 
     let t=Math.random()*Math.PI*2;
     let p=heart(t);
 
-    /* fill trong nhưng không loãng */
-    let fill=Math.pow(Math.random(),0.7);
+    // 🔥 phân bố đều toàn bộ diện tích
+    let r=Math.sqrt(Math.random());
+
+    // 🔥 random góc nhẹ để phá đường thẳng giữa
+    let angleOffset = (Math.random()-0.5)*0.15;
+    let cosA = Math.cos(angleOffset);
+    let sinA = Math.sin(angleOffset);
+
+    let bx = (p.x * cosA - p.y * sinA) * r;
+    let by = (p.x * sinA + p.y * cosA) * r;
 
     particles.push({
-        bx:p.x*fill,
-        by:p.y*fill,
+        bx:bx,
+        by:by,
 
-        x:Math.random()*innerWidth,
-        y:Math.random()*innerHeight,
+        x:Math.random()*window.innerWidth,
+        y:Math.random()*window.innerHeight,
 
-        size:Math.random()*1.4+0.4,   // 👈 to hơn -> rõ hơn
-        speed:Math.random()*0.025+0.01
+        size:Math.random()*1.6+0.4,
+        speed:Math.random()*0.02+0.008
     });
 }
 
-/* ===== DRAW (ĐẬM + GLOW MẠNH) ===== */
+/* ===== DRAW ===== */
 function draw(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    ctx.clearRect(0,0,window.innerWidth,window.innerHeight);
 
     let time=(Date.now()-startTime)*0.0028;
     let pulse=1+Math.sin(time*2)*0.06;
 
+    let cx=window.innerWidth/2;
+    let cy=window.innerHeight/2;
+
     ctx.shadowColor="hotpink";
-    ctx.shadowBlur=28;   /* 🔥 tăng glow */
+    ctx.shadowBlur=25;
 
     particles.forEach(p=>{
 
-        let tx=canvas.width/2 + p.bx*scale*pulse;
-        let ty=canvas.height/2 - p.by*scale*pulse;
+        let tx=cx + p.bx*scale*pulse;
+        let ty=cy - p.by*scale*pulse;
 
         p.x+=(tx-p.x)*p.speed;
         p.y+=(ty-p.y)*p.speed;
 
-        /* 🔥 đậm hơn */
         ctx.fillStyle="rgba(255,60,140,1)";
-
         ctx.beginPath();
         ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
         ctx.fill();
@@ -212,14 +226,13 @@ function draw(){
 }
 draw();
 
-/* ===== EFFECTS ===== */
+/* ===== EFFECT ===== */
 function startEffects(){
 
-/* tránh chạy nhiều lần */
 if(window.effectsStarted) return;
 window.effectsStarted=true;
 
-/* ===== TIM BAY ===== */
+/* tim bay */
 setInterval(()=>{
     let h=document.createElement("div");
     h.className="heart";
@@ -227,82 +240,43 @@ setInterval(()=>{
     h.style.left=Math.random()*100+"%";
     h.style.top="100%";
     document.body.appendChild(h);
-
     setTimeout(()=>h.remove(),4000);
 },300);
-/* ===== 🐘 VOI BAY (THÊM Ở ĐÂY) ===== */
+
+/* voi bay */
 setInterval(()=>{
     let e=document.createElement("div");
-    e.className="heart"; // dùng chung style bay cho nhẹ code
+    e.className="heart";
     e.innerHTML="🐘";
-
-    e.style.position="absolute";
     e.style.fontSize="35px";
-    e.style.filter="drop-shadow(0 0 10px pink)";
-
     e.style.left=Math.random()*100+"%";
     e.style.top="100%";
-
     document.body.appendChild(e);
-
     setTimeout(()=>e.remove(),5000);
 },800);
-/* ===== ẢNH BAY ===== */
-let imgs=[
-"vb1.jpg","vb2.jpg","vb3.jpg","vb4.jpg","vb5.jpg",
-"vb6.jpg","vb8.jpg","vb9.jpg","vb10.jpg",
-"vb11.jpg","vb12.jpg","vb13.jpg","vb14.jpg","vb15.jpg",
-"vb16.jpg","vb17.jpg","vb18.jpg","vb19.jpg","vb20.jpg",
-"vb21.jpg","vb22.jpg","vb23.jpg","vb24.jpg","vb25.jpg",
-"vb26.jpg","vb27.jpg","vb28.jpg","vb29.jpg","vb30.jpg"
-];
 
-/* GIỚI HẠN SỐ ẢNH TRÊN MÀN (QUAN TRỌNG) */
+/* ảnh */
+let imgs=["vb1.jpg","vb2.jpg","vb3.jpg","vb4.jpg","vb5.jpg", "vb6.jpg","vb8.jpg","vb9.jpg","vb10.jpg", "vb11.jpg","vb12.jpg","vb13.jpg","vb14.jpg","vb15.jpg",
+ "vb16.jpg","vb17.jpg","vb18.jpg","vb19.jpg","vb20.jpg", "vb21.jpg","vb22.jpg","vb23.jpg","vb24.jpg","vb25.jpg", "vb26.jpg","vb27.jpg","vb28.jpg","vb29.jpg","vb30.jpg"];
+
 setInterval(()=>{
-    if(document.querySelectorAll(".falling-img").length > 12) return;
+    if(document.querySelectorAll(".falling-img").length>10) return;
 
     let img=document.createElement("img");
     img.src=imgs[Math.floor(Math.random()*imgs.length)];
     img.className="falling-img";
     img.style.left=Math.random()*100+"%";
     img.style.animationDuration=(3+Math.random()*3)+"s";
-
     document.body.appendChild(img);
-
     setTimeout(()=>img.remove(),6000);
 },900);
 
-
+/* text */
 let messages=[
 "Voi con của Vương Bình 🐘💖",
-"Voi con yêu anh nhìu 💘",
+"Anh thương em 💘",
 "Mãi bên nhau nhé 💕",
-"Thanh tân như phút ban đầu ✨",
-"Thành phố phía đông",
-"Ngày buồn tháng nhớ năm thương",
-"Anh bờ vai",
-"100<1",
-"Cho phép tôi mời anh một ly",
-"Bạch Nguyệt Quang",
-"Nắng hoa niên",
-"Cảm ơn mọi người đã đến chơi với a Bình nhaaaa💖",
-"Bình bé xíu của em ơi",
-"Cái gì dọ, đừng mò",
-"Mong anh luôn vui vẻ và thật nhiều năng lượng nhé💕",
-"Have a nice day!!!!!",
-"FMT DAY 3, DAY 4 và nhiều DAY nứa ",
-"KBPNGKBPLS",
-"Thật thành công và rực rỡ",
-"Bính anh nhòe e vờ ri đây",
-"Cảm ơn anh đã luôn tỏa sáng 🔥🔥",
-"Nũng nịu hơn nữa đi anh",
-"Đừng tập gym nữa em thích bụng mỡ cơ",
-"Iu anh thật nhiều 💘 ",
-"Chăm ra Hà Nội gặp voi con nhen",
-"chúng ta cùng đồng hành với nhau thêm nhiều năm nữa nhé🫶🏻",
-"Keep going, I am behind you",
-"Mong sự nghiệp của anh thăng tiến vượt bậc, vươn cao vươn xa",
-"Chúc anh luôn tự tin, bứt phá và sáng toả nhé"
+"Em là tất cả ✨"
 ];
 
 setInterval(()=>{
